@@ -74,7 +74,6 @@ func getMessages(token, groupID string, beforeID *string) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-    fmt.Println(response)
 
 	return &response, nil
 }
