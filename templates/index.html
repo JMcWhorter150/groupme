@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Search</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        #search {
+            padding: 20px;
+            background: #f4f4f4;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        #results {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        #chat {
+            display: none;
+            flex: 1;
+            padding: 20px;
+            border-top: 1px solid #ccc;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div id="search">
+        <input type="text" id="searchInput" placeholder="Search messages...">
+        <button id="searchButton">Search</button>
+    </div>
+    <div id="results"></div>
+    <div id="chat"></div>
+    <script src="/static/app.js"></script>
+</body>
+</html>
+
