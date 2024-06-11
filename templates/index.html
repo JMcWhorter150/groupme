@@ -2,16 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat Search</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
             display: flex;
             flex-direction: column;
             height: 100vh;
+            width: 100%;
         }
         #search {
             padding: 20px;
@@ -22,6 +20,7 @@
             flex: 1;
             padding: 20px;
             overflow-y: auto;
+            width: 50%;
         }
         #chat {
             display: none;
@@ -29,17 +28,125 @@
             padding: 20px;
             border-top: 1px solid #ccc;
             overflow-y: auto;
+            width: 50%;
         }
+        .message {
+            border-bottom: 1px solid #ccc;
+            padding: 10px 0;
+        }
+        .#chat message:hover {
+            background: #f4f4f4;
+        }
+        .timestamp {
+            color: #999;
+        }
+        #main-box {
+	    display: flex;
+            justify-content: space-between;
+	}
+	.header {
+	    padding: 10px 0;
+            font-size: 24px;
+	}
     </style>
 </head>
 <body>
     <div id="search">
-        <input type="text" id="searchInput" placeholder="Search messages...">
-        <button id="searchButton">Search</button>
+        <input oninput="debounce(() => searchMessages())" type="text" id="searchInput" placeholder="Search messages">
+        <button onclick="debounce(() => searchMessages())">Search</button>
     </div>
-    <div id="results"></div>
-    <div id="chat"></div>
-    <script src="/static/app.js"></script>
+    <div id="main-box">
+    	<div id="results"></div>
+    	<div id="chat"></div>
+    </div>
+
+    <script>
+        function debounce(func, timeout = 300){
+	    let timer;
+	    return (...args) => {
+	      clearTimeout(timer);
+	      timer = setTimeout(() => { func.apply(this, args); }, timeout);
+	    };
+	}
+
+        function searchMessages() {
+            const query = document.getElementById('searchInput').value;
+            const response = fetch(`/search?q=${query}`)
+				.then(r => r.json())
+				.then(messages => {
+				    const resultsDiv = document.getElementById('results');
+				    resultsDiv.innerHTML = '';
+				    messages.forEach(msg => {
+					const div = document.createElement('div');
+					div.className = 'message';
+					div.innerHTML = `<strong>${msg.name}</strong> <span class="timestamp">${new Date(msg.created_at * 1000).toLocaleString()}</span><br>${msg.text}`;
+					div.onclick = () => loadChat(msg.id);
+					resultsDiv.appendChild(div);
+				    });
+				})
+        }
+        
+        async function loadChat(messageID) {
+            const response = await fetch(`/messages/${messageID}`);
+            const data = await response.json();
+            const chatDiv = document.getElementById('chat');
+            chatDiv.innerHTML = '';
+            const beforeMessages = data.before_messages;
+            const afterMessages = data.after_messages;
+
+            beforeMessages.reverse().forEach(msg => {
+                const div = document.createElement('div');
+                div.className = 'message';
+                div.innerHTML = `<strong>${msg.name}</strong> <span class="timestamp">${new Date(msg.created_at * 1000).toLocaleString()}</span><br>${msg.text}`;
+                div.dataset.id = msg.id;
+                chatDiv.appendChild(div);
+            });
+
+            const mainMessageDiv = document.createElement('div');
+            mainMessageDiv.className = 'message';
+            mainMessageDiv.innerHTML = `<strong>${data.message.name}</strong> <span class="timestamp">${new Date(data.message.created_at * 1000).toLocaleString()}</span><br>${data.message.text}`;
+            mainMessageDiv.dataset.id = data.message.id
+            chatDiv.appendChild(mainMessageDiv);
+
+            afterMessages.forEach(msg => {
+                const div = document.createElement('div');
+                div.className = 'message';
+                div.innerHTML = `<strong>${msg.name}</strong> <span class="timestamp">${new Date(msg.created_at * 1000).toLocaleString()}</span><br>${msg.text}`;
+                div.dataset.id = msg.id;
+                chatDiv.appendChild(div);
+            });
+
+            chatDiv.style.display = 'block';
+
+            chatDiv.addEventListener('scroll', async () => {
+                if (chatDiv.scrollTop === 0) {
+                    const firstMessageID = chatDiv.firstChild.dataset.id;
+                    const response = await fetch(`/messages/${firstMessageID}/before`);
+                    const newMessages = await response.json();
+                    newMessages.reverse().forEach(msg => {
+                        const div = document.createElement('div');
+                        div.className = 'message';
+                        div.innerHTML = `<strong>${msg.name}</strong> <span class="timestamp">${new Date(msg.created_at * 1000).toLocaleString()}</span><br>${msg.text}`;
+                        div.dataset.id = msg.id;
+                        chatDiv.insertBefore(div, chatDiv.firstChild);
+                    });
+                }
+
+                if (chatDiv.scrollTop + chatDiv.clientHeight >= chatDiv.scrollHeight) {
+                    const lastMessageID = chatDiv.lastChild.dataset.id;
+                    const response = await fetch(`/messages/${lastMessageID}/after`);
+                    const newMessages = await response.json();
+                    newMessages.forEach(msg => {
+                        const div = document.createElement('div');
+                        div.className = 'message';
+                        div.innerHTML = `<strong>${msg.name}</strong> <span class="timestamp">${new Date(msg.created_at * 1000).toLocaleString()}</span><br>${msg.text}`;
+                        div.dataset.id = msg.id;
+                        chatDiv.appendChild(div);
+                    });
+                }
+            });
+        }
+    </script>
 </body>
 </html>
 
