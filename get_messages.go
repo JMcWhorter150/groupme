@@ -175,6 +175,9 @@ func messageExists(db *sql.DB, messageID string) (bool, error) {
 	return exists, err
 }
 
+func DailyTask() {
+}
+
 func main() {
 	loadEnv()
 	token := os.Getenv("GROUPME_TOKEN")

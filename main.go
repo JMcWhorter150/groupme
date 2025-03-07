@@ -4,6 +4,7 @@ import (
     "database/sql"
     "log"
     "net/http"
+    "time"
 
     "github.com/gin-gonic/gin"
     _ "github.com/mattn/go-sqlite3"
@@ -120,4 +121,41 @@ func afterMessagesHandler(c *gin.Context) {
 
     c.JSON(http.StatusOK, afterMessages)
 }
+
+func dailyTask() {
+    ticker := time.NewTicker(24 * time.Hour)
+defer ticker.Stop()
+
+for {
+select {
+case <-ticker.C:
+LoadEnv()
+token := os.Getenv("GROUPME_TOKEN")
+groupID := os.Getenv("GROUPME_GROUP_ID")
+
+db, err := sql.Open("sqlite3", "./groupme.db")
+if err != nil {
+log.Fatalf("Failed to open database: %v", err)
+    }
+defer db.Close()
+
+err = CreateTables(db)
+if err != nil {
+log.Fatalf("Failed to create tables: %v", err)
+    }
+var beforeID *string
+for {
+response, err := getMessages(token, groupID, beforeID)
+    if err != nil {
+log.Fatalf("Failed to get messages: %v\n", err)
+        }
+    if len(response.Messages) == 0 {
+    break
+        }
+
+    for _, message := range response.Messages {
+    exists, err := MessageExists(db, message.ID)
+continue
+    }
+
 
